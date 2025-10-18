@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/Services/">
+    <Project Path="Gym_SaaS_Microservices/Gym_SaaS_Microservices.csproj" />
+  </Folder>
+</Solution>
