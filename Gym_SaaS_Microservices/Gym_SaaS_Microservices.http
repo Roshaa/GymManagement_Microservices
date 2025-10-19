@@ -1,6 +1,0 @@
-@Gym_SaaS_Microservices_HostAddress = http://localhost:5176
-
-GET {{Gym_SaaS_Microservices_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

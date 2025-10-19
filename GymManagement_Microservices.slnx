@@ -1,5 +1,4 @@
 <Solution>
-  <Folder Name="/Services/">
-    <Project Path="Gym_SaaS_Microservices/Promo_Service.csproj" />
-  </Folder>
+  <Folder Name="/Services/" />
+  <Project Path="GymManagement_Promo_Microservice/Promo_Service.csproj" />
 </Solution>

@@ -1,4 +1,3 @@
-using AutoMapper;
 using GymManagement_Promo_Microservice.Context;
 using GymManagement_Promo_Microservice.Mappers;
 using Microsoft.EntityFrameworkCore;
