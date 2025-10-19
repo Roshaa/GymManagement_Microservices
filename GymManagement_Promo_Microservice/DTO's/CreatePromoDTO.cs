@@ -2,7 +2,7 @@
 
 namespace GymManagement_Promo_Microservice.DTO_s
 {
-    public record class CreatePromoDTO
+    public sealed record class CreatePromoDTO
     {
         [Required, StringLength(5, MinimumLength = 5)]
         [RegularExpression(@"^[A-Z0-9]{5}$")]
