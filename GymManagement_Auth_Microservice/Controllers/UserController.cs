@@ -51,7 +51,7 @@ namespace GymManagement_Auth_Microservice.Controllers
         {
             if (string.IsNullOrWhiteSpace(id)) return BadRequest();
 
-            string currentUserId = _userManager.GetUserId(User);
+            string currentUserId = _userManager.GetUserId(User)!;
 
             var result = await _userService.DeleteUserAsync(id, currentUserId);
 
