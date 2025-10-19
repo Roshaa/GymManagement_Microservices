@@ -1,6 +1,6 @@
 using AutoMapper;
-using Gym_SaaS_Microservices.Context;
-using Gym_SaaS_Microservices.Mappers;
+using GymManagement_Promo_Microservice.Context;
+using GymManagement_Promo_Microservice.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 

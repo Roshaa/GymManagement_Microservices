@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Gym_SaaS_Microservices.Models
+namespace GymManagement_Promo_Microservice.Models
 {
     public class Promo
     {

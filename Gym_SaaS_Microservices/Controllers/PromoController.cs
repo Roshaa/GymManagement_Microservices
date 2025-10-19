@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
-using Gym_SaaS_Microservices.Context;
-using Gym_SaaS_Microservices.DTO_s;
-using Gym_SaaS_Microservices.Models;
+using GymManagement_Promo_Microservice.Context;
+using GymManagement_Promo_Microservice.DTO_s;
+using GymManagement_Promo_Microservice.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gym_SaaS_Microservices.Controllers
+namespace GymManagement_Promo_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

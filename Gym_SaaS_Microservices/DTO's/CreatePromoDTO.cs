@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Gym_SaaS_Microservices.DTO_s
+namespace GymManagement_Promo_Microservice.DTO_s
 {
     public record class CreatePromoDTO
     {

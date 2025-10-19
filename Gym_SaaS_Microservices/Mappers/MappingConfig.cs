@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using Gym_SaaS_Microservices.DTO_s;
-using Gym_SaaS_Microservices.Models;
+using GymManagement_Promo_Microservice.DTO_s;
+using GymManagement_Promo_Microservice.Models;
 
-namespace Gym_SaaS_Microservices.Mappers
+namespace GymManagement_Promo_Microservice.Mappers
 {
     public class MappingConfig : Profile
     {

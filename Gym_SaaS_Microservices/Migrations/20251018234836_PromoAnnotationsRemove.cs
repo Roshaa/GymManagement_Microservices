@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Gym_SaaS_Microservices.Migrations
+namespace GymManagement_Promo_Microservice.Migrations
 {
     /// <inheritdoc />
     public partial class PromoAnnotationsRemove : Migration

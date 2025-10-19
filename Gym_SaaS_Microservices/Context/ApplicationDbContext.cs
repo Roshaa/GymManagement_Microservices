@@ -1,7 +1,7 @@
-﻿using Gym_SaaS_Microservices.Models;
+﻿using GymManagement_Promo_Microservice.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Gym_SaaS_Microservices.Context
+namespace GymManagement_Promo_Microservice.Context
 {
     public class ApplicationDbContext : DbContext
     {

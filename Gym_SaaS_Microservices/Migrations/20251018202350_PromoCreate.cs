@@ -4,7 +4,7 @@
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Gym_SaaS_Microservices.Migrations
+namespace GymManagement_Promo_Microservice.Migrations
 {
     /// <inheritdoc />
     public partial class PromoCreate : Migration
