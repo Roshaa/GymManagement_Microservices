@@ -34,8 +34,7 @@ public class IdentitySeeder
             };
             var create = await userMgr.CreateAsync(user, password);
             if (!create.Succeeded)
-                throw new InvalidOperationException(
-                    $"Failed creating seed user {email}: {string.Join(", ", create.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException($"Failed creating seed user {email}: {string.Join(", ", create.Errors.Select(e => e.Description))}");
         }
 
         foreach (var role in rolesToAdd)

@@ -1,43 +1,65 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+﻿using GymManagement_Auth_Microservice.DTO_s;
+using GymManagement_Auth_Microservice.DTO_s.GymManagement_Auth_Microservice.DTO_s;
+using GymManagement_Auth_Microservice.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement_Auth_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserController : ControllerBase
+    [Authorize]
+    public class UserController( UserService _userService, UserManager<IdentityUser> _userManager) : ControllerBase
     {
-        // GET: api/<UserController>
+
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> GetUsers(int page = 1)
         {
-            return new string[] { "value1", "value2" };
+            UserDTO[] users = await _userService.GetUsersAsync(page);
+
+            return Ok(users);
         }
 
-        // GET api/<UserController>/5
         [HttpGet("{id}")]
-        public string Get(int id)
+        public async Task<IActionResult> GetUserById(string id)
         {
-            return "value";
+            if (String.IsNullOrWhiteSpace(id)) return BadRequest();
+
+            UserDetailsDTO user = await _userService.GetUserDetailsAsync(id);
+
+            if (user == null) return NotFound();
+
+            return Ok(user);
         }
 
-        // POST api/<UserController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
-
-        // PUT api/<UserController>/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        public async Task<IActionResult> UpdateUser(string id, [FromBody] UserUpdateDTO dto)
         {
+            if (string.IsNullOrWhiteSpace(id)) return BadRequest();
+
+            var result = await _userService.UpdateUserAsync(id, dto);
+            if (result.NotFound) return NotFound();
+            if (result.Errors.Count > 0) return BadRequest(new { errors = result.Errors });
+
+            var updated = await _userService.GetUserDetailsAsync(id);
+            return Ok(updated);
         }
 
-        // DELETE api/<UserController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<IActionResult> DeleteUser(string id)
         {
+            if (string.IsNullOrWhiteSpace(id)) return BadRequest();
+
+            string currentUserId = _userManager.GetUserId(User);
+
+            var result = await _userService.DeleteUserAsync(id, currentUserId);
+
+            if (result.NotFound) return NotFound();
+            if (result.Errors.Count > 0) return BadRequest(new { errors = result.Errors });
+
+            return NoContent();
         }
+
     }
 }

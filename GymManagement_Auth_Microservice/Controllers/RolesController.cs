@@ -1,43 +1,34 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+﻿using GymManagement_Auth_Microservice.DTO_s;
+using GymManagement_Auth_Microservice.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GymManagement_Auth_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class RolesController : ControllerBase
+    [Authorize(Roles = "Admin")]
+    public class RolesController(RoleService _roleService) : ControllerBase
     {
-        // GET: api/<RolesController>
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult>GetRoles()
         {
-            return new string[] { "value1", "value2" };
+            RoleDTO[] roles = await _roleService.GetRolesAsync();
+            return Ok(roles);
         }
 
-        // GET api/<RolesController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> SetUserRoles(string userId, string[] roleIds)
         {
-            return "value";
+            if (roleIds is null || roleIds.Length == 0) return BadRequest("Specify the roles");
+
+            var (dto, invalidRoleIds, errors) = await _roleService.SetUserRolesAsync(userId, roleIds);
+
+            if (errors.Length > 0) return BadRequest(new { errors, invalidRoleIds });
+            if (invalidRoleIds.Length > 0) Response.Headers.Append("Invalid-RoleIds", string.Join(",", invalidRoleIds));
+
+            return Ok(dto);
         }
 
-        // POST api/<RolesController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
-
-        // PUT api/<RolesController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/<RolesController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
     }
 }

@@ -31,6 +31,8 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Apisett
 builder.Services.AddAutoMapper(typeof(MappingConfig));
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<JwtTokenGenerator>();
 
 builder.Services.AddControllers();
