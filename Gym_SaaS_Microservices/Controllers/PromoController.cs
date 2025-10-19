@@ -40,7 +40,7 @@ namespace Gym_SaaS_Microservices.Controllers
                 Code = p.Code,
                 Discount = p.Discount,
                 MonthDuration = p.MonthDuration
-            })
+            }) 
                 .Where(p => p.Id == id)
                 .FirstOrDefaultAsync(ct);
 
