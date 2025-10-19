@@ -18,7 +18,7 @@ namespace GymManagement_Auth_Microservice.Controllers
         }
 
         [HttpPut("{userId}")]
-        public async Task<IActionResult> SetUserRoles(string userId, string[] roleIds)
+        public async Task<IActionResult> SetUserRoles(string userId, [FromBody] string[] roleIds)
         {
             if (roleIds is null || roleIds.Length == 0) return BadRequest("Specify the roles");
 

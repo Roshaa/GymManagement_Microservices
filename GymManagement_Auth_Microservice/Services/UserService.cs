@@ -80,11 +80,19 @@ namespace GymManagement_Auth_Microservice.Services
             if (!string.IsNullOrEmpty(currentUserId) && currentUserId == id)
                 return (false, new List<string> { "You cannot delete your own account." });
 
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                var admins = await _userManager.GetUsersInRoleAsync("Admin");
+                if (admins.Count <= 1) return (false, new List<string> { "Cannot delete the last remaining Admin." });
+            }
+
             var result = await _userManager.DeleteAsync(user);
+
             if (!result.Succeeded) return (false, result.Errors.Select(e => e.Description).ToList());
 
             return (false, new List<string>());
         }
+
 
     }
 }

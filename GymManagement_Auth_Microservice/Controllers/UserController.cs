@@ -9,7 +9,7 @@ namespace GymManagement_Auth_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class UserController( UserService _userService, UserManager<IdentityUser> _userManager) : ControllerBase
     {
 
