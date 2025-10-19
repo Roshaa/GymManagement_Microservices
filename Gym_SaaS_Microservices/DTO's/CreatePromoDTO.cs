@@ -1,12 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Gym_SaaS_Microservices.DTO_s
 {
     public record class CreatePromoDTO
     {
-        public string Code { get; set; }
-        public decimal Discount { get; set; }
-        public int MonthDuration { get; set; }
+        [Required, StringLength(5, MinimumLength = 5)]
+        [RegularExpression(@"^[A-Z0-9]{5}$")]
+        public string Code { get; init; } = null!;
+
+        [Required, Range(0.1, 1.0)]
+        public decimal Discount { get; init; }
+
+        [Required, Range(1, 6)]
+        public int MonthDuration { get; init; }
     }
 }

@@ -17,8 +17,10 @@ namespace Gym_SaaS_Microservices.Context
             modelBuilder.Entity<Promo>(b =>
             {
                 b.HasIndex(p => p.Code).IsUnique();
-                b.Property(p => p.Code).IsUnicode(false);
+                b.Property(p => p.Code).HasMaxLength(5).IsUnicode(false);
+                b.Property(p => p.Discount).HasPrecision(3, 2);
             });
+
 
             modelBuilder.Entity<Promo>().HasData(new Promo
             {
