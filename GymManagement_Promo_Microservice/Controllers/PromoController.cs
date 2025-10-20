@@ -2,6 +2,7 @@
 using GymManagement_Promo_Microservice.Context;
 using GymManagement_Promo_Microservice.DTO_s;
 using GymManagement_Promo_Microservice.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace GymManagement_Promo_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PromoController(ApplicationDbContext _context, IMapper _mapper) : ControllerBase
     {
         [HttpGet]

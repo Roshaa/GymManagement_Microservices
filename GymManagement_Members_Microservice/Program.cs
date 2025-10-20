@@ -1,9 +1,8 @@
-using GymManagement_Auth_Microservice.Context;
 using GymManagement_Auth_Microservice.Jwt;
-using GymManagement_Auth_Microservice.Mappers;
-using GymManagement_Auth_Microservice.Services;
+using GymManagement_Members_Microservice.Context;
+using GymManagement_Members_Microservice.Data;
+using GymManagement_Members_Microservice.Mappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -12,37 +11,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-
-builder.Services
-    .AddIdentityCore<IdentityUser>(opts =>
-    {
-        opts.User.RequireUniqueEmail = true;
-    })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
-
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Apisettings:JwtOptions"));
-
-builder.Services.AddAutoMapper(typeof(MappingConfig));
-
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<UserService>();
-builder.Services.AddScoped<RoleService>();
-builder.Services.AddScoped<JwtTokenGenerator>();
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApi();
 
-builder.Services.AddSwaggerGen(o =>
+builder.Services.AddSwaggerGen(options =>
 {
-    o.SwaggerDoc("v1", new OpenApiInfo { Title = "Gym Microservices API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Gym Microservices API",
+        Version = "v1"
+    });
 
-    o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT in the Authorization header. Example: Bearer {token}",
         Name = "Authorization",
@@ -52,15 +33,15 @@ builder.Services.AddSwaggerGen(o =>
         BearerFormat = "JWT"
     });
 
-    o.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
             Array.Empty<string>()
         }
     });
-});
 
+});
 var jwtSection = builder.Configuration.GetSection("Apisettings:JwtOptions");
 builder.Services.Configure<JwtOptions>(jwtSection);
 var jwt = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions missing");
@@ -89,6 +70,12 @@ builder.Services
         };
     });
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+
+builder.Services.AddAutoMapper(typeof(MappingConfig));
 
 var app = builder.Build();
 
@@ -96,38 +83,44 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
-
     try
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
-
-        IdentitySeeder identitySeeder = new IdentitySeeder();
-        await identitySeeder.SeedAsync(services);
-        logger.LogInformation("Identity roles/users seeded.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error during migration/seeding.");
+        logger.LogError(ex, "An error occurred while applying database migrations.");
         throw;
     }
+
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var memberSeeder = new MemberSeeder();
+        await memberSeeder.SeedAsync(db);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding database");
+        throw;
+    }
+
 }
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI(o =>
+    app.UseSwaggerUI(options =>
     {
-        o.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym SaaS Microservices API v1");
-        o.RoutePrefix = string.Empty;
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym SaaS Microservices API v1");
+        options.RoutePrefix = string.Empty;
     });
 }
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
