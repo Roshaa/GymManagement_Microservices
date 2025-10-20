@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using GymManagement_Members_Microservice.Client;
 using GymManagement_Members_Microservice.Context;
 using GymManagement_Members_Microservice.DTO_s;
 using GymManagement_Members_Microservice.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -13,7 +15,7 @@ namespace GymManagement_Members_Microservice.Controllers
     [Authorize]
     [ApiController]
     //Im not going to bother in creating and injecting a service here.
-    public class MemberController(ApplicationDbContext _context, IMapper _mapper) : ControllerBase
+    public class MemberController(ApplicationDbContext _context, IMapper _mapper, PromoClient _promoClient) : ControllerBase
     {
         private readonly int _membersPerPage = 20;
 
@@ -22,6 +24,7 @@ namespace GymManagement_Members_Microservice.Controllers
             return (page - 1) * _membersPerPage;
         }
 
+        #region Members
         [HttpGet("latest")]
         public async Task<IActionResult> GetLatestMembers(int page = 1, CancellationToken ct = default)
         {
@@ -101,13 +104,44 @@ namespace GymManagement_Members_Microservice.Controllers
 
             Member member = _mapper.Map<Member>(dto);
 
-            //criar tabela para verificar descontos/ PROMO
-            //criar gym access history
-
             await _context.AddAsync(member, ct);
-            await _context.SaveChangesAsync(ct);
+
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+            {
+                return Conflict("A member with the same email or phone already exists.");
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && sql.Number == 547)
+            {
+                return BadRequest("Invalid request on creating member");
+            }
+
+            await CreateMemberDiscount(new CreateMemberDiscountDTO
+            {
+                Code = dto.Code,
+                MemberId = member.Id
+            }, ct);
 
             return CreatedAtAction(nameof(GetMemberById), new { id = member.Id }, _mapper.Map<MemberDTO>(member));
+        }
+
+        //In real world scenarios its more complex than this, cause the debit can be cancelled from bank side too and user can also pay manually
+        //For the sake of this personal project we will keep it simple
+        [HttpPut("debit_status/{memberId:int}")]
+        public async Task<IActionResult> UpdateMemberDebitStatus(int memberId, CancellationToken ct = default)
+        {
+            Member? member = await _context.Member.FirstOrDefaultAsync(m => m.Id == memberId, ct);
+
+            if (member == null) return NotFound();
+
+            member.DebitActive = !member.DebitActive;
+
+            await _context.SaveChangesAsync(ct);
+
+            return Ok();
         }
 
         [HttpPut("{id:int}")]
@@ -136,5 +170,87 @@ namespace GymManagement_Members_Microservice.Controllers
 
             return NoContent();
         }
+        #endregion
+
+        //Should be in a separate controller in real world scenario
+        #region Discounts
+        [HttpPost("member_discount")]
+        public async Task<IActionResult> CreateDiscountForMember([FromBody] CreateMemberDiscountDTO dto, CancellationToken ct = default)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            Member? member = await _context.Member.AsNoTracking().FirstOrDefaultAsync(m => m.Id == dto.MemberId, ct);
+
+            if (member == null) return NotFound();
+
+            bool created = await CreateMemberDiscount(dto, ct);
+
+            if (!created) return BadRequest("Invalid discount code, check if member already has an active discount");
+
+            return Ok();
+        }
+
+        [HttpGet("{memberId:int}/discount")]
+        public async Task<IActionResult> GetMemberDiscount(int memberId, CancellationToken ct = default)
+        {
+            MemberDiscountDTO dto = await _context.MemberDiscounts.AsNoTracking()
+                .Select(md => new MemberDiscountDTO
+                {
+                    MemberId = md.MemberId,
+                    DiscountCode = md.DiscountCode,
+                    Discount = md.Discount,
+                    RemainingMonths = md.RemainingMonths
+                })
+                .FirstOrDefaultAsync(d => d.MemberId == memberId, ct);
+
+            if (dto == null) return NotFound();
+
+            return Ok(dto);
+        }
+
+        [HttpDelete("member_discount/{memberId:int}")]
+        public async Task<IActionResult> DeleteMemberDiscount(int memberId, CancellationToken ct = default)
+        {
+            await _context.MemberDiscounts.Where(md => md.MemberId == memberId).ExecuteDeleteAsync(ct);
+            return NoContent();
+        }
+
+        //In real world this should be in a service
+        private async Task<PromoAnswerDTO> GetCodeDiscount(string code, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return null;
+
+            PromoAnswerDTO promo = await _promoClient.GetDiscountByCodeAsync(code, ct);
+
+            return promo;
+        }
+
+        //In real world this should be in a service
+        private async Task<bool> CreateMemberDiscount(CreateMemberDiscountDTO dto, CancellationToken ct = default)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.Code))
+            {
+                PromoAnswerDTO promo = await GetCodeDiscount(dto.Code);
+
+                if (promo != null)
+                {
+                    if (await _context.MemberDiscounts.AnyAsync(d => d.MemberId == dto.MemberId)) return false;
+
+                    MemberDiscount memberDiscount = new MemberDiscount();
+
+                    memberDiscount.MemberId = dto.MemberId;
+                    memberDiscount.DiscountCode = dto.Code;
+                    memberDiscount.Discount = promo.Discount;
+                    memberDiscount.RemainingMonths = promo.MonthDuration;
+
+                    await _context.AddAsync(memberDiscount);
+                    await _context.SaveChangesAsync(ct);
+                    return true;
+                }
+
+            }
+            return false;
+        }
+        #endregion
     }
 }

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Services/" />
   <Project Path="GymManagement_Auth_Microservice/GymManagement_Auth_Microservice.csproj" Id="0aa396a7-228c-4e75-9b50-b63f3cf1104d" />
+  <Project Path="GymManagement_MemberShips_Microservice/GymManagement_MemberShips_Microservice.csproj" Id="817e8819-6278-42bb-ab98-7da74b513f7e" />
   <Project Path="GymManagement_Members_Microservice/GymManagement_Members_Microservice.csproj" Id="a22c7d41-7594-432a-a61a-68e4ed084640" />
   <Project Path="GymManagement_Promo_Microservice/Promo_Service.csproj" />
 </Solution>

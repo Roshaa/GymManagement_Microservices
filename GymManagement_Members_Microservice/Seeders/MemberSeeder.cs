@@ -44,7 +44,8 @@ namespace GymManagement_Members_Microservice.Data
                     Email = email,
                     IBAN = iban,
                     RegisterDay = DateTime.UtcNow,
-                    DebitActive = faker.Random.Bool()
+                    DebitActive = faker.Random.Bool(),
+                    MemberShipActive = faker.Random.Bool()
                 });
             }
 

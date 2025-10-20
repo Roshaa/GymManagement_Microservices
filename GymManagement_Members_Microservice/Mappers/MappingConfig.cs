@@ -10,6 +10,7 @@ namespace GymManagement_Members_Microservice.Mappers
         {
             CreateMap<CreateMemberDTO, Member>();
             CreateMap<Member, MemberDTO>();
+            CreateMap<Member, MemberSubscriptionDTO>().ForMember(d => d.PaymentDay, opt => opt.Ignore());
         }
     }
 }

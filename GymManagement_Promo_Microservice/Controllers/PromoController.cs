@@ -5,6 +5,7 @@ using GymManagement_Promo_Microservice.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Promo_Service.DTO_s;
 
 namespace GymManagement_Promo_Microservice.Controllers
 {
@@ -13,6 +14,22 @@ namespace GymManagement_Promo_Microservice.Controllers
     [Authorize]
     public class PromoController(ApplicationDbContext _context, IMapper _mapper) : ControllerBase
     {
+        [HttpGet("by-code/{code}")]
+        public async Task<IActionResult> GetPromoByCode(string code, CancellationToken ct = default)
+        {
+            PromoAnswerDTO promo = await _context.Promo.AsNoTracking().Where(p => p.Code == code)
+                .Select(p => new PromoAnswerDTO
+                {
+                    Discount = p.Discount,
+                    MonthDuration = p.MonthDuration
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (promo == null) return NotFound();
+
+            return Ok(promo);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetPromos(int page = 1, CancellationToken ct = default)
         {
@@ -36,13 +53,13 @@ namespace GymManagement_Promo_Microservice.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id, CancellationToken ct = default)
         {
-            PromoDTO promoDto = await _context.Promo.AsNoTracking().Select(p=> new PromoDTO
+            PromoDTO promoDto = await _context.Promo.AsNoTracking().Select(p => new PromoDTO
             {
                 Id = p.Id,
                 Code = p.Code,
                 Discount = p.Discount,
                 MonthDuration = p.MonthDuration
-            }) 
+            })
                 .Where(p => p.Id == id)
                 .FirstOrDefaultAsync(ct);
 
@@ -54,7 +71,7 @@ namespace GymManagement_Promo_Microservice.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePromo([FromBody] CreatePromoDTO dto, CancellationToken ct = default)
         {
-            if (await _context.Promo.AsNoTracking().AnyAsync(p => p.Code == dto.Code, ct)) 
+            if (await _context.Promo.AsNoTracking().AnyAsync(p => p.Code == dto.Code, ct))
                 return Conflict("Code already exists");
 
             Promo promo = _mapper.Map<Promo>(dto);
@@ -82,6 +99,7 @@ namespace GymManagement_Promo_Microservice.Controllers
 
             return NoContent();
         }
+
 
     }
 }

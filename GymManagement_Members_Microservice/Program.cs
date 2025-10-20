@@ -1,4 +1,5 @@
 using GymManagement_Auth_Microservice.Jwt;
+using GymManagement_Members_Microservice.Client;
 using GymManagement_Members_Microservice.Context;
 using GymManagement_Members_Microservice.Data;
 using GymManagement_Members_Microservice.Mappers;
@@ -77,6 +78,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlSer
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<ForwardJwtHandler>();
+
+builder.Services.AddHttpClient<PromoClient>(client =>
+{
+    var baseUrl = builder.Configuration["Apisettings:PromoService:BaseUrl"];
+
+    if (string.IsNullOrWhiteSpace(baseUrl))
+        throw new InvalidOperationException("Missing 'Apisettings:PromoService:BaseUrl'.");
+
+    if (!baseUrl.EndsWith("/")) baseUrl += "/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(5);
+}).AddHttpMessageHandler<ForwardJwtHandler>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -114,7 +130,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym SaaS Microservices API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym Microservices API v1");
         options.RoutePrefix = string.Empty;
     });
 }
