@@ -1,4 +1,5 @@
 ﻿using GymManagement_Members_Microservice.DTO_s;
+using GymManagement_Shared_Classes.DTO_s;
 
 namespace GymManagement_Members_Microservice.Client
 {

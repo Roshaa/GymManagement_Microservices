@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using GymManagement_Promo_Microservice.Context;
 using GymManagement_Promo_Microservice.DTO_s;
 using GymManagement_Promo_Microservice.Models;
+using GymManagement_Shared_Classes.DTO_s;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Promo_Service.DTO_s;
 
 namespace GymManagement_Promo_Microservice.Controllers
 {
@@ -17,12 +18,10 @@ namespace GymManagement_Promo_Microservice.Controllers
         [HttpGet("by-code/{code}")]
         public async Task<IActionResult> GetPromoByCode(string code, CancellationToken ct = default)
         {
-            PromoAnswerDTO promo = await _context.Promo.AsNoTracking().Where(p => p.Code == code)
-                .Select(p => new PromoAnswerDTO
-                {
-                    Discount = p.Discount,
-                    MonthDuration = p.MonthDuration
-                })
+            PromoAnswerDTO promo = await _context.Promo
+                .AsNoTracking()
+                .Where(p => p.Code == code)
+                .ProjectTo<PromoAnswerDTO>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync(ct);
 
             if (promo == null) return NotFound();
@@ -53,13 +52,9 @@ namespace GymManagement_Promo_Microservice.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id, CancellationToken ct = default)
         {
-            PromoDTO promoDto = await _context.Promo.AsNoTracking().Select(p => new PromoDTO
-            {
-                Id = p.Id,
-                Code = p.Code,
-                Discount = p.Discount,
-                MonthDuration = p.MonthDuration
-            })
+            PromoDTO promoDto = await _context.Promo
+                .AsNoTracking()
+                .ProjectTo<PromoDTO>(_mapper.ConfigurationProvider)
                 .Where(p => p.Id == id)
                 .FirstOrDefaultAsync(ct);
 

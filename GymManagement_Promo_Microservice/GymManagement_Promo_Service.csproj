@@ -29,4 +29,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="9.0.6" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GymManagement_Shared_Classes\GymManagement_Shared_Classes.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using GymManagement_Members_Microservice.Client;
 using GymManagement_Members_Microservice.Context;
 using GymManagement_Members_Microservice.DTO_s;
 using GymManagement_Members_Microservice.Models;
+using GymManagement_Shared_Classes.DTO_s;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -29,18 +31,10 @@ namespace GymManagement_Members_Microservice.Controllers
         {
             int skip = pageSkip(page);
 
-            MemberDTO[] members = await _context.Member.AsNoTracking().OrderByDescending(m => m.Id)
-                .Select(m => new MemberDTO
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Phone = m.Phone,
-                    Email = m.Email,
-                    IBAN = m.IBAN,
-                    RegisterDay = m.RegisterDay,
-                    DebitActive = m.DebitActive,
-                    MemberShipActive = m.MemberShipActive
-                })
+            MemberDTO[] members = await _context.Member
+                .AsNoTracking()
+                .OrderByDescending(m => m.Id)
+                .ProjectTo<MemberDTO>(_mapper.ConfigurationProvider)
                 .Skip(skip)
                 .Take(_membersPerPage)
                 .ToArrayAsync(ct);
@@ -53,17 +47,9 @@ namespace GymManagement_Members_Microservice.Controllers
         {
             int skip = pageSkip(page);
 
-            IQueryable<MemberDTO> query = _context.Member.AsNoTracking().Select(m => new MemberDTO
-            {
-                Id = m.Id,
-                Name = m.Name,
-                Phone = m.Phone,
-                Email = m.Email,
-                IBAN = m.IBAN,
-                RegisterDay = m.RegisterDay,
-                DebitActive = m.DebitActive,
-                MemberShipActive = m.MemberShipActive
-            });
+            IQueryable<MemberDTO> query = _context.Member
+                .AsNoTracking()
+                .ProjectTo<MemberDTO>(_mapper.ConfigurationProvider);
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
                 query = query.Where(m => m.Name.ToLower().Contains(dto.Name.ToLower()));
@@ -178,10 +164,7 @@ namespace GymManagement_Members_Microservice.Controllers
 
             if (member == null) return NotFound();
 
-            member.Name = dto.Name;
-            member.Phone = dto.Phone;
-            member.Email = dto.Email;
-            member.IBAN = dto.IBAN;
+            member = _mapper.Map(dto, member);
 
             await _context.SaveChangesAsync(ct);
 
@@ -192,7 +175,6 @@ namespace GymManagement_Members_Microservice.Controllers
         public async Task<IActionResult> DeleteMember(int id, CancellationToken ct = default)
         {
             await _context.Member.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
-
             return NoContent();
         }
         #endregion
@@ -218,14 +200,9 @@ namespace GymManagement_Members_Microservice.Controllers
         [HttpGet("{memberId:int}/discount")]
         public async Task<IActionResult> GetMemberDiscount(int memberId, CancellationToken ct = default)
         {
-            MemberDiscountDTO dto = await _context.MemberDiscounts.AsNoTracking()
-                .Select(md => new MemberDiscountDTO
-                {
-                    MemberId = md.MemberId,
-                    DiscountCode = md.DiscountCode,
-                    Discount = md.Discount,
-                    RemainingMonths = md.RemainingMonths
-                })
+            MemberDiscountDTO dto = await _context.MemberDiscounts
+                .AsNoTracking()
+                .ProjectTo<MemberDiscountDTO>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync(d => d.MemberId == memberId, ct);
 
             if (dto == null) return NotFound();

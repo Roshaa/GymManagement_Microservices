@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using GymManagement_MemberShips_Microservice.Context;
 using GymManagement_MemberShips_Microservice.DTO_s;
 using GymManagement_MemberShips_Microservice.Models;
-using GymManagement_MembersShips_Microservice.DTO_s;
+using GymManagement_Shared_Classes.DTO_s;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,13 +19,10 @@ namespace GymManagement_MemberShips_Microservice.Controllers
         public async Task<IActionResult> GetMembersByDebitStatus(CancellationToken ct = default)
         {
             MemberSubscriptionDTO[] memberSubscriptions = await _context.MemberSubscriptions
-                .AsNoTracking().Where(m => m.DebitActive).Select(m => new MemberSubscriptionDTO
-                {
-                    MemberId = m.MemberId,
-                    IBAN = m.IBAN,
-                    PaymentDay = m.PaymentDay,
-                    DebitActive = m.DebitActive
-                }).ToArrayAsync(ct);
+                .AsNoTracking()
+                .Where(m => m.DebitActive)
+                .ProjectTo<MemberSubscriptionDTO>(_mapper.ConfigurationProvider)
+                .ToArrayAsync(ct);
 
             return Ok(memberSubscriptions);
         }
@@ -33,13 +31,10 @@ namespace GymManagement_MemberShips_Microservice.Controllers
         public async Task<IActionResult> GetMemberSubscription(int memberId, CancellationToken ct = default)
         {
             MemberSubscriptionDTO memberSubscription = await _context.MemberSubscriptions
-                .AsNoTracking().Where(m => m.MemberId == memberId).Select(m => new MemberSubscriptionDTO
-                {
-                    MemberId = m.MemberId,
-                    IBAN = m.IBAN,
-                    PaymentDay = m.PaymentDay,
-                    DebitActive = m.DebitActive
-                }).SingleAsync(ct);
+                .AsNoTracking()
+                .Where(m => m.MemberId == memberId)
+                .ProjectTo<MemberSubscriptionDTO>(_mapper.ConfigurationProvider)
+                .SingleAsync(ct);
 
             if (memberSubscription == null) return NotFound();
 
@@ -68,7 +63,8 @@ namespace GymManagement_MemberShips_Microservice.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             MemberSubscription memberSubscription = await _context.MemberSubscriptions
-                .Where(m => m.MemberId == dto.MemberId).FirstOrDefaultAsync(ct);
+                .Where(m => m.MemberId == dto.MemberId)
+                .FirstOrDefaultAsync(ct);
 
             if (memberSubscription == null) return NotFound();
 

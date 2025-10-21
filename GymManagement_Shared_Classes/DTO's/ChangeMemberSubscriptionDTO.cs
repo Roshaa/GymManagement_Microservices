@@ -1,4 +1,4 @@
-﻿namespace GymManagement_Members_Microservice.DTO_s
+﻿namespace GymManagement_Shared_Classes.DTO_s
 {
     public sealed record class ChangeMemberSubscriptionDTO
     {
