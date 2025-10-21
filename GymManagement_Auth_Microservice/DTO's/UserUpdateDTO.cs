@@ -2,7 +2,7 @@
 
 namespace GymManagement_Auth_Microservice.DTO_s
 {
-    public class UserUpdateDTO
+    public sealed record class UserUpdateDTO
     {
         [Required]
         [StringLength(80, MinimumLength = 2, ErrorMessage = "Invalid Name")]

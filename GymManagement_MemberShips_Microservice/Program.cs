@@ -41,6 +41,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 
 });
+
 var jwtSection = builder.Configuration.GetSection("Apisettings:JwtOptions");
 builder.Services.Configure<JwtOptions>(jwtSection);
 var jwt = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions missing");

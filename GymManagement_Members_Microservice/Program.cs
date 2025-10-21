@@ -93,6 +93,18 @@ builder.Services.AddHttpClient<PromoClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 }).AddHttpMessageHandler<ForwardJwtHandler>();
 
+builder.Services.AddHttpClient<MemberShipClient>(client =>
+{
+    var baseUrl = builder.Configuration["Apisettings:MemberShipService:BaseUrl"];
+
+    if (string.IsNullOrWhiteSpace(baseUrl))
+        throw new InvalidOperationException("Missing 'Apisettings:MemberShipService:BaseUrl'.");
+
+    if (!baseUrl.EndsWith("/")) baseUrl += "/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(5);
+}).AddHttpMessageHandler<ForwardJwtHandler>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

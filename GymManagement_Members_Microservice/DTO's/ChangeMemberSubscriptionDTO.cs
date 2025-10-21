@@ -1,8 +1,8 @@
 ﻿namespace GymManagement_Members_Microservice.DTO_s
 {
-    public sealed record class CreateMemberDiscountDTO
+    public sealed record class ChangeMemberSubscriptionDTO
     {
-        public string Code { get; set; }
         public int MemberId { get; set; }
+        public bool DebitActive { get; set; }
     }
 }

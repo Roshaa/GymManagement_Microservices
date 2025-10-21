@@ -1,8 +1,7 @@
 ﻿namespace GymManagement_Members_Microservice.DTO_s
 {
-    public class PromoAnswerDTO
+    public sealed record class PromoAnswerDTO
     {
-
         public decimal Discount { get; set; }
         public int MonthDuration { get; set; }
     }

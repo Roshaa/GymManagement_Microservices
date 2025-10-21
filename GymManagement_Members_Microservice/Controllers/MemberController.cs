@@ -8,14 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace GymManagement_Members_Microservice.Controllers
 {
     [Route("api/[controller]")]
     [Authorize]
     [ApiController]
-    //Im not going to bother in creating and injecting a service here.
-    public class MemberController(ApplicationDbContext _context, IMapper _mapper, PromoClient _promoClient) : ControllerBase
+    //Im not going to bother in creating and injecting a service here for a personal project...
+    public class MemberController(ApplicationDbContext _context, IMapper _mapper, PromoClient _promoClient, MemberShipClient _membershipClient) : ControllerBase
     {
         private readonly int _membersPerPage = 20;
 
@@ -125,7 +124,29 @@ namespace GymManagement_Members_Microservice.Controllers
                 MemberId = member.Id
             }, ct);
 
-            return CreatedAtAction(nameof(GetMemberById), new { id = member.Id }, _mapper.Map<MemberDTO>(member));
+            //Lets assume that in real world the first payment is in a automatic payment terminal (tpa)
+            //Issue a payment to memberships creation via http client
+            var createMemberSubscriptionDTO = _mapper.Map<CreateMemberSubscriptionDTO>(member);
+            bool subscriptionCreated = await _membershipClient.CreateSubscriptionPayment(createMemberSubscriptionDTO);
+            string subscriptionMessage = subscriptionCreated ? "Membership subscription payment created successfully." : "Could not create membership subscription payment.";
+
+            return CreatedAtAction(nameof(GetMemberById), new { id = member.Id, subscriptionMessage }, _mapper.Map<MemberDTO>(member));
+        }
+
+        [HttpPost("create_payment_subscription/{memberId:int}")]
+        public async Task<IActionResult> CreateMemberPaymentSubscription(int memberId, CancellationToken ct = default)
+        {
+            Member? member = await _context.Member.AsNoTracking().FirstOrDefaultAsync(m => m.Id == memberId, ct);
+
+            if (member == null) return NotFound();
+
+            var createMemberSubscriptionDTO = _mapper.Map<CreateMemberSubscriptionDTO>(member);
+
+            bool subscriptionCreated = await _membershipClient.CreateSubscriptionPayment(createMemberSubscriptionDTO);
+
+            if (!subscriptionCreated) return BadRequest("Could not create subscription payment for member");
+
+            return Ok();
         }
 
         //In real world scenarios its more complex than this, cause the debit can be cancelled from bank side too and user can also pay manually
@@ -134,11 +155,15 @@ namespace GymManagement_Members_Microservice.Controllers
         public async Task<IActionResult> UpdateMemberDebitStatus(int memberId, CancellationToken ct = default)
         {
             Member? member = await _context.Member.FirstOrDefaultAsync(m => m.Id == memberId, ct);
-
             if (member == null) return NotFound();
 
-            member.DebitActive = !member.DebitActive;
+            ChangeMemberSubscriptionDTO changeMemberSubscriptionDTO = _mapper.Map<ChangeMemberSubscriptionDTO>(member);
 
+            bool sucessful = await _membershipClient.ChangeMemberDebitStatus(changeMemberSubscriptionDTO, ct);
+
+            if (!sucessful) return BadRequest("Could not update member debit status in the memberships service, please verify");
+
+            member.DebitActive = !member.DebitActive;
             await _context.SaveChangesAsync(ct);
 
             return Ok();

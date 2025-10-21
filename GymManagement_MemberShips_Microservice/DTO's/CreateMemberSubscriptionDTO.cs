@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace GymManagement_Members_Microservice.DTO_s
+namespace GymManagement_MembersShips_Microservice.DTO_s
 {
     public sealed record class CreateMemberSubscriptionDTO
     {

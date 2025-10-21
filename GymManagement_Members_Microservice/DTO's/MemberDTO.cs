@@ -1,6 +1,6 @@
 ﻿namespace GymManagement_Members_Microservice.DTO_s
 {
-    public class MemberDTO
+    public sealed record class MemberDTO
     {
         public int Id { get; set; }
         public string Name { get; set; }
