@@ -9,6 +9,9 @@ namespace GymManagement_Members_Microservice.Data
     {
         public async Task SeedAsync(ApplicationDbContext db)
         {
+            //The memberships database wont be seeded with the memberships of these members...
+            //Il leave it like this so i didnt do this for nothing
+
             await db.Database.MigrateAsync();
 
             int existingCount = await db.Member.CountAsync();
