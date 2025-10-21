@@ -90,7 +90,7 @@ builder.Services.AddHttpClient<PromoClient>(client =>
 
     if (!baseUrl.EndsWith("/")) baseUrl += "/";
     client.BaseAddress = new Uri(baseUrl);
-    client.Timeout = TimeSpan.FromSeconds(5);
+    client.Timeout = TimeSpan.FromSeconds(60);
 }).AddHttpMessageHandler<ForwardJwtHandler>();
 
 builder.Services.AddHttpClient<MemberShipClient>(client =>
@@ -102,8 +102,9 @@ builder.Services.AddHttpClient<MemberShipClient>(client =>
 
     if (!baseUrl.EndsWith("/")) baseUrl += "/";
     client.BaseAddress = new Uri(baseUrl);
-    client.Timeout = TimeSpan.FromSeconds(5);
-}).AddHttpMessageHandler<ForwardJwtHandler>();
+    client.Timeout = TimeSpan.FromSeconds(60);
+})
+    .AddHttpMessageHandler<ForwardJwtHandler>();
 
 var app = builder.Build();
 

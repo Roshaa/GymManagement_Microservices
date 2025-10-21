@@ -7,8 +7,8 @@
         public string Phone { get; set; }
         public string Email { get; set; }
         public string IBAN { get; set; }
-        public DateTime RegisterDay { get; set; } = DateTime.Now;
+        public DateOnly RegisterDay { get; set; }
+        public DateOnly ActiveUntilDay { get; set; }
         public bool DebitActive { get; set; }
-        public bool MemberShipActive { get; set; }
     }
 }

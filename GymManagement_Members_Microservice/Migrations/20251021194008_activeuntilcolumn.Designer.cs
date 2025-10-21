@@ -4,6 +4,7 @@ using GymManagement_Members_Microservice.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GymManagement_Members_Microservice.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251021194008_activeuntilcolumn")]
+    partial class activeuntilcolumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -31,9 +34,7 @@ namespace GymManagement_Members_Microservice.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateOnly>("ActiveUntilDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValueSql("CONVERT(date, DATEADD(month, 1, GETUTCDATE()))");
+                        .HasColumnType("date");
 
                     b.Property<bool>("DebitActive")
                         .HasColumnType("bit");
@@ -46,6 +47,9 @@ namespace GymManagement_Members_Microservice.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("MemberShipActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -55,9 +59,7 @@ namespace GymManagement_Members_Microservice.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<DateOnly>("RegisterDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("date")
-                        .HasDefaultValueSql("CONVERT(date, GETUTCDATE())");
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 

@@ -8,8 +8,8 @@ namespace GymManagement_Members_Microservice.Models
         public string Phone { get; set; }
         public string Email { get; set; }
         public string IBAN { get; set; }
-        public DateTime RegisterDay { get; set; }
-        public bool MemberShipActive { get; set; }
+        public DateOnly RegisterDay { get; set; }
+        public DateOnly ActiveUntilDay { get; set; }
         public bool DebitActive { get; set; }
 
         //Keys

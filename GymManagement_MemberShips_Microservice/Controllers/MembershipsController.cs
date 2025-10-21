@@ -48,12 +48,14 @@ namespace GymManagement_MemberShips_Microservice.Controllers
 
             MemberSubscription memberSubscription = _mapper.Map<MemberSubscription>(dto);
 
+            if (await _context.MemberSubscriptions.AnyAsync(m => m.MemberId == dto.MemberId, ct)) return Conflict($"Member with ID {dto.MemberId} already has a subscription.");
+
             await _context.MemberSubscriptions.AddAsync(memberSubscription);
             await _context.SaveChangesAsync(ct);
 
             MemberSubscriptionDTO respDTO = _mapper.Map<MemberSubscriptionDTO>(memberSubscription);
 
-            return CreatedAtAction(nameof(GetMemberSubscription), new { id = memberSubscription.Id }, respDTO);
+            return CreatedAtAction(nameof(GetMemberSubscription), new { memberId = memberSubscription.MemberId }, respDTO);
 
         }
 

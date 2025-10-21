@@ -20,8 +20,6 @@ namespace GymManagement_Members_Microservice.DTO_s
         [StringLength(25, MinimumLength = 25, ErrorMessage = "IBAN must be exactly 25 characters")]
         public string IBAN { get; set; }
 
-        public DateTime RegisterDay { get; set; } = DateTime.Now;
-
         public bool DebitActive { get; set; }
         public bool MemberShipActive { get; set; } = true;
         public string Code { get; set; }

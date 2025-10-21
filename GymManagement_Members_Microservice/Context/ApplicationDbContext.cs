@@ -26,6 +26,15 @@ namespace GymManagement_Members_Microservice.Context
                  .HasFilter("[Phone] IS NOT NULL");
 
             });
+
+            modelBuilder.Entity<Member>()
+              .Property(m => m.RegisterDay)
+              .HasDefaultValueSql("CONVERT(date, GETUTCDATE())");
+
+            modelBuilder.Entity<Member>()
+              .Property(m => m.ActiveUntilDay)
+              .HasDefaultValueSql("CONVERT(date, DATEADD(month, 1, GETUTCDATE()))");
+
         }
 
     }

@@ -12,7 +12,7 @@ namespace GymManagement_Members_Microservice.Controllers
         public async Task<IActionResult> Get(int id, CancellationToken ct = default)
         {
             //If ur confused by not getting user id, in gym every member has a card with their id that they use to access the gym
-            bool access = await _context.Member.Select(m => m.Id == id && m.MemberShipActive).AnyAsync(ct);
+            bool access = await _context.Member.Select(m => m.Id == id && m.ActiveUntilDay >= DateOnly.FromDateTime(DateTime.Now)).AnyAsync(ct);
 
             return Ok(access ? "Lift hard" : "You do not have an active membership");
         }
