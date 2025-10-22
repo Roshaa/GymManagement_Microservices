@@ -17,7 +17,7 @@ using System.Text;
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
-var cfg = builder.Configuration; // env vars are included by default
+var cfg = builder.Configuration;
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

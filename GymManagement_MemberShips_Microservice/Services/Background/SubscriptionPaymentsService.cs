@@ -3,6 +3,7 @@ using GymManagement_MemberShips_Microservice.Client;
 using GymManagement_MemberShips_Microservice.Config;
 using GymManagement_MemberShips_Microservice.Context;
 using GymManagement_MemberShips_Microservice.Models;
+using GymManagement_Shared_Classes.DTO_s;
 using GymManagement_Shared_Classes.Events;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,7 +38,7 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
             // _logger.LogInformation("Next scheduled run at {NextRun}. Initial delay: {Delay}", nextRun, initialDelay);
             // await Task.Delay(initialDelay, stoppingToken);
 
-            // RUN ON APP STARTUP INSTEAD:
+            // RUN ON APP STARTUP:
             await ProcessDueSubscriptionPaymentsAsync(stoppingToken);
         }
 
@@ -68,42 +69,30 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
 
                 foreach (MemberSubscription ms in dueSubscriptions)
                 {
-                    PaymentMessage paymentMessage = new PaymentMessage();
+                    //Simulate a 10% chance of payment failure due to cancelled direct debit in bank account
+                    int changeUserCancelledInBankAccount = new Random().Next(1, 101);
 
-                    if (ms.IBAN == null)
+                    if (changeUserCancelledInBankAccount <= 10)
                     {
-                        _logger.LogWarning("MemberSubscription with Id {Id} has no IBAN. Skipping payment processing.", ms.Id);
+                        _logger.LogWarning("Simulating payment failure for MemberSubscription with Id {Id} due to cancelled direct debit in bank account.", ms.MemberId);
+
+                        PaymentMessage debitCancelledMessage = new PaymentMessage(ms.MemberId, false, null);
+
+                        var msgbody = BinaryData.FromObjectAsJson(debitCancelledMessage);
+
+                        var cancelledDebitMsg = new ServiceBusMessage(msgbody)
+                        {
+                            ContentType = "application/json",
+                            Subject = "SubscriptionPayment",
+                            MessageId = $"pay:{ms.MemberId}:{today:yyyyMMdd}",
+                            CorrelationId = ms.MemberId.ToString()
+                        };
+                        messages.Add(cancelledDebitMsg);
+
                         continue;
                     }
-                    else
-                    {
-                        //Simulate a 10% chance of payment failure due to cancelled direct debit in bank account
-                        var changeUserCancelledInBankAccount = new Random().Next(10, 100);
 
-                        if (changeUserCancelledInBankAccount <= 10)
-                        {
-                            _logger.LogWarning("Simulating payment failure for MemberSubscription with Id {Id} due to cancelled direct debit in bank account.", ms.MemberId);
-
-                            paymentMessage.MemberId = ms.MemberId;
-                            paymentMessage.NextPayment = ms.PaymentDay;
-                            paymentMessage.PaymentSuccessful = true;
-
-                            var msgbody = BinaryData.FromObjectAsJson(paymentMessage);
-
-                            var msg2 = new ServiceBusMessage(msgbody)
-                            {
-                                ContentType = "application/json",
-                                Subject = "SubscriptionPayment",
-                                MessageId = $"pay:{ms.MemberId}:{today:yyyyMMdd}",
-                                CorrelationId = ms.MemberId.ToString()
-                            };
-                            messages.Add(msg2);
-                            continue;
-
-                        }
-                    }
-
-                    var discount = await _memberDiscountClient.GetMemberDiscountAsync(ms.MemberId, ct);
+                    MemberDiscountDTO discount = await _memberDiscountClient.GetMemberDiscountAsync(ms.MemberId, ct);
                     decimal gymFee = discount != null ? baseSubscriptionPrice - (baseSubscriptionPrice * discount.Discount) : baseSubscriptionPrice;
 
                     PaymentHistory payment = new PaymentHistory
@@ -117,9 +106,7 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
                     db.PaymentHistory.Add(payment);
                     ms.PaymentDay = ms.PaymentDay.AddMonths(1);
 
-                    paymentMessage.MemberId = ms.MemberId;
-                    paymentMessage.NextPayment = ms.PaymentDay;
-                    paymentMessage.PaymentSuccessful = true;
+                    PaymentMessage paymentMessage = new PaymentMessage(ms.MemberId, true, ms.PaymentDay);
 
                     var body = BinaryData.FromObjectAsJson(paymentMessage);
 
@@ -174,5 +161,6 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
             _logger.LogInformation("SubscriptionPaymentsService stopping.");
             return base.StopAsync(cancellationToken);
         }
+
     }
 }

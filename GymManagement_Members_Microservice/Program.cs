@@ -1,8 +1,12 @@
+using Azure.Identity;
+using Azure.Messaging.ServiceBus;
+using DotNetEnv;
 using GymManagement_Auth_Microservice.Jwt;
 using GymManagement_Members_Microservice.Client;
 using GymManagement_Members_Microservice.Context;
 using GymManagement_Members_Microservice.Data;
 using GymManagement_Members_Microservice.Mappers;
+using GymManagement_Members_Microservice.Services.Background;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,7 +14,10 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
 
+Env.Load();
+
 var builder = WebApplication.CreateBuilder(args);
+var cfg = builder.Configuration;
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -42,6 +49,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 
 });
+
 var jwtSection = builder.Configuration.GetSection("Apisettings:JwtOptions");
 builder.Services.Configure<JwtOptions>(jwtSection);
 var jwt = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions missing");
@@ -104,6 +112,24 @@ builder.Services.AddHttpClient<MemberShipClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(60);
 })
     .AddHttpMessageHandler<ForwardJwtHandler>();
+
+string fqns = cfg["ServiceBus_Namespace"] ?? throw new("ServiceBus_Namespace missing");
+string queue = cfg["ServiceBus_QueueName"] ?? throw new("ServiceBus_QueueName missing");
+
+builder.Services.AddSingleton(new ServiceBusClient(
+    fqns,
+    new DefaultAzureCredential(),
+    new ServiceBusClientOptions { TransportType = ServiceBusTransportType.AmqpWebSockets }));
+
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<ServiceBusClient>().CreateProcessor(queue, new ServiceBusProcessorOptions
+    {
+        AutoCompleteMessages = false,
+        MaxConcurrentCalls = 1,
+        PrefetchCount = 5
+    }));
+
+builder.Services.AddHostedService<SubscriptionPaymentsConsumerService>();
 
 var app = builder.Build();
 
