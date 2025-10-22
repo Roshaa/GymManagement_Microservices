@@ -1,4 +1,4 @@
-﻿namespace GymManagement_Auth_Microservice.Jwt
+﻿namespace GymManagement_Members_Microservice.Jwt
 {
     public class ForwardJwtHandler(IHttpContextAccessor acc) : DelegatingHandler
     {

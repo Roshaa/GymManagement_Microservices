@@ -74,7 +74,7 @@ public sealed class SubscriptionPaymentsConsumerService : IHostedService
             }
             else
             {
-                //Maybe would send a notification...
+                //Send a notification...
                 _logger.LogWarning("Payment FAILED for MemberId={MemberId}. Debit disabled.", paymentMessage.MemberId);
             }
 

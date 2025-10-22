@@ -8,7 +8,6 @@
         public DateOnly PaymentDate { get; set; }
         public decimal Amount { get; set; }
 
-
         public MemberSubscription? MemberSubscription { get; set; }
     }
 }

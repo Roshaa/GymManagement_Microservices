@@ -1,4 +1,4 @@
-﻿namespace GymManagement_Auth_Microservice.Jwt
+﻿namespace GymManagement_Shared_Classes.Jwt
 {
     public class JwtOptions
     {

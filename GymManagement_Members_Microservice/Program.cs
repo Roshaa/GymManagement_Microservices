@@ -1,18 +1,15 @@
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using DotNetEnv;
-using GymManagement_Auth_Microservice.Jwt;
 using GymManagement_Members_Microservice.Client;
 using GymManagement_Members_Microservice.Context;
 using GymManagement_Members_Microservice.Data;
+using GymManagement_Members_Microservice.Jwt;
 using GymManagement_Members_Microservice.Mappers;
 using GymManagement_Members_Microservice.Services.Background;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using GymManagement_Shared_Classes.Jwt;
+using GymManagement_Shared_Classes.Swagger;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using System.Security.Claims;
-using System.Text;
 
 Env.Load();
 
@@ -21,70 +18,13 @@ var cfg = builder.Configuration;
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddGymSwagger("Members API");
+builder.Services.AddGymJwtAuth(builder.Configuration);
 
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Gym Microservices API",
-        Version = "v1"
-    });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT in the Authorization header. Example: Bearer {token}",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
-    });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
-            Array.Empty<string>()
-        }
-    });
-
-});
-
-var jwtSection = builder.Configuration.GetSection("Apisettings:JwtOptions");
-builder.Services.Configure<JwtOptions>(jwtSection);
-var jwt = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions missing");
-
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = true;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt.Issuer,
-            ValidAudience = jwt.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
-            RoleClaimType = ClaimTypes.Role,
-            NameClaimType = ClaimTypes.NameIdentifier
-        };
-    });
-
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                       ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-
 builder.Services.AddAutoMapper(typeof(MappingConfig));
-
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<ForwardJwtHandler>();
 
@@ -126,7 +66,8 @@ builder.Services.AddSingleton(sp =>
     {
         AutoCompleteMessages = false,
         MaxConcurrentCalls = 1,
-        PrefetchCount = 5
+        PrefetchCount = 0,
+        MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(5)
     }));
 
 builder.Services.AddHostedService<SubscriptionPaymentsConsumerService>();
@@ -164,13 +105,7 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym Microservices API v1");
-        options.RoutePrefix = string.Empty;
-    });
+    app.UseGymSwaggerUI(title: "Gym Microservices API", version: "v1", serveAtRoot: true);
 }
 
 app.UseHttpsRedirection();

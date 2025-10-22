@@ -6,12 +6,10 @@ using GymManagement_MemberShips_Microservice.Context;
 using GymManagement_MemberShips_Microservice.Jwt;
 using GymManagement_MemberShips_Microservice.Mappers;
 using GymManagement_MemberShips_Microservice.Services.Background;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using GymManagement_Shared_Classes.Jwt;
+using GymManagement_Shared_Classes.Migrations.NonSeeded;
+using GymManagement_Shared_Classes.Swagger;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using System.Security.Claims;
-using System.Text;
 
 //I wont seed this application's database for now
 Env.Load();
@@ -21,62 +19,8 @@ var cfg = builder.Configuration;
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Gym Microservices API",
-        Version = "v1"
-    });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT in the Authorization header. Example: Bearer {token}",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT"
-    });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
-            Array.Empty<string>()
-        }
-    });
-
-});
-
-var jwtSection = builder.Configuration.GetSection("Apisettings:JwtOptions");
-builder.Services.Configure<JwtOptions>(jwtSection);
-var jwt = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("JwtOptions missing");
-
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = true;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt.Issuer,
-            ValidAudience = jwt.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
-            RoleClaimType = ClaimTypes.Role,
-            NameClaimType = ClaimTypes.NameIdentifier
-        };
-    });
+builder.Services.AddGymSwagger("Members API");
+builder.Services.AddGymJwtAuth(builder.Configuration);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
@@ -110,31 +54,10 @@ builder.Services.AddHostedService<SubscriptionPaymentsService>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    try
-    {
-        var db = services.GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "An error occurred while applying database migrations.");
-        throw;
-    }
-}
-
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gym Microservices API v1");
-        options.RoutePrefix = string.Empty;
-    });
+    await app.ApplyMigrationsAsync<ApplicationDbContext>();
+    app.UseGymSwaggerUI(title: "Gym Microservices API", version: "v1", serveAtRoot: true);
 }
 
 app.UseHttpsRedirection();
