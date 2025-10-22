@@ -79,6 +79,7 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
                         PaymentMessage debitCancelledMessage = new PaymentMessage(ms.MemberId, false, null);
 
                         var msgbody = BinaryData.FromObjectAsJson(debitCancelledMessage);
+                        ms.DebitActive = false;
 
                         var cancelledDebitMsg = new ServiceBusMessage(msgbody)
                         {
@@ -87,6 +88,7 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
                             MessageId = $"pay:{ms.MemberId}:{today:yyyyMMdd}",
                             CorrelationId = ms.MemberId.ToString()
                         };
+
                         messages.Add(cancelledDebitMsg);
 
                         continue;

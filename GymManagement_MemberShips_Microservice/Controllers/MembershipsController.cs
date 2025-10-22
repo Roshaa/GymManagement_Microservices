@@ -60,17 +60,17 @@ namespace GymManagement_MemberShips_Microservice.Controllers
         }
 
         [HttpPut("change_debit")]
-        public async Task<IActionResult> ChangeMemberSubscription([FromBody] ChangeMemberSubscriptionDTO dto, CancellationToken ct = default)
+        public async Task<IActionResult> ChangeMemberSubscription(int memberId, CancellationToken ct = default)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             MemberSubscription memberSubscription = await _context.MemberSubscriptions
-                .Where(m => m.MemberId == dto.MemberId)
+                .Where(m => m.MemberId == memberId)
                 .FirstOrDefaultAsync(ct);
 
             if (memberSubscription == null) return NotFound();
 
-            memberSubscription.DebitActive = dto.DebitActive;
+            memberSubscription.DebitActive = !memberSubscription.DebitActive;
 
             await _context.SaveChangesAsync(ct);
 

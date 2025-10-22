@@ -10,7 +10,6 @@ namespace GymManagement_Members_Microservice.Models
         public string IBAN { get; set; }
         public DateOnly RegisterDay { get; set; }
         public DateOnly ActiveUntilDay { get; set; }
-        public bool DebitActive { get; set; }
 
         //Keys
         // 1:1, Member can have a discount active on his membership

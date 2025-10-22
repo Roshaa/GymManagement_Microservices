@@ -19,9 +19,6 @@ namespace GymManagement_Members_Microservice.Mappers
                 .ForMember(c => c.PaymentDay, opt => opt.Ignore())
                 .ForMember(c => c.MemberId, opt => opt.MapFrom(m => m.Id));
 
-            CreateMap<Member, ChangeMemberSubscriptionDTO>()
-                .ForMember(c => c.MemberId, opt => opt.MapFrom(m => m.Id));
-
             CreateMap<MemberDiscount, MemberDiscountDTO>();
         }
     }

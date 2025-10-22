@@ -140,17 +140,12 @@ namespace GymManagement_Members_Microservice.Controllers
         [HttpPut("debit_status/{memberId:int}")]
         public async Task<IActionResult> UpdateMemberDebitStatus(int memberId, CancellationToken ct = default)
         {
-            Member? member = await _context.Member.FirstOrDefaultAsync(m => m.Id == memberId, ct);
-            if (member == null) return NotFound();
+            bool memberExists = await _context.Member.AnyAsync(m => m.Id == memberId, ct);
+            if (!memberExists) return NotFound();
 
-            ChangeMemberSubscriptionDTO changeMemberSubscriptionDTO = _mapper.Map<ChangeMemberSubscriptionDTO>(member);
-
-            bool sucessful = await _membershipClient.ChangeMemberDebitStatus(changeMemberSubscriptionDTO, ct);
+            bool sucessful = await _membershipClient.ChangeMemberDebitStatus(memberId, ct);
 
             if (!sucessful) return BadRequest("Could not update member debit status in the memberships service, please verify");
-
-            member.DebitActive = !member.DebitActive;
-            await _context.SaveChangesAsync(ct);
 
             return Ok();
         }

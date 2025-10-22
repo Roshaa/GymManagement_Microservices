@@ -47,8 +47,7 @@ namespace GymManagement_Members_Microservice.Data
                     Email = email,
                     IBAN = iban,
                     RegisterDay = DateOnly.FromDateTime(DateTime.UtcNow),
-                    ActiveUntilDay = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
-                    DebitActive = faker.Random.Bool()
+                    ActiveUntilDay = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1))
                 });
             }
 
