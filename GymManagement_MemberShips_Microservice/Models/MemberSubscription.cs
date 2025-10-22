@@ -10,5 +10,8 @@ namespace GymManagement_MemberShips_Microservice.Models
         public string IBAN { get; set; }
         public DateOnly PaymentDay { get; set; }
         public bool DebitActive { get; set; }
+
+        public ICollection<PaymentHistory> PaymentHistories { get; set; } = new List<PaymentHistory>();
+
     }
 }

@@ -1,4 +1,9 @@
-﻿using GymManagement_MemberShips_Microservice.Context;
+﻿using Azure.Messaging.ServiceBus;
+using GymManagement_MemberShips_Microservice.Client;
+using GymManagement_MemberShips_Microservice.Config;
+using GymManagement_MemberShips_Microservice.Context;
+using GymManagement_MemberShips_Microservice.Models;
+using GymManagement_Shared_Classes.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace GymManagement_MemberShips_Microservice.Services.Background
@@ -7,13 +12,19 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
     {
         private readonly ILogger<SubscriptionPaymentsService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ServiceBusSender _sender;
+        private readonly MemberDiscountClient _memberDiscountClient;
 
         public SubscriptionPaymentsService(
             ILogger<SubscriptionPaymentsService> logger,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            ServiceBusSender sender,
+            MemberDiscountClient memberDiscountClient)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
+            _sender = sender;
+            _memberDiscountClient = memberDiscountClient;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -42,30 +53,120 @@ namespace GymManagement_MemberShips_Microservice.Services.Background
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            DateOnly today = DateOnly.FromDateTime(DateTime.Now); // local date to match local 06:00 scheduling
+            DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 
-            var dueSubscriptions = await db.MemberSubscriptions
-                .AsNoTracking()
-                .Where(ms => ms.DebitActive && ms.PaymentDay == today)
-                .ToListAsync(ct);
+            MemberSubscription[] dueSubscriptions = await db.MemberSubscriptions
+                .Where(ms => ms.DebitActive && ms.PaymentDay <= today)
+                .ToArrayAsync(ct);
 
-            _logger.LogInformation("Processing {Count} due subscription payments for {Date}.", dueSubscriptions.Count, today);
+            if (dueSubscriptions.Length > 0)
+            {
+                _logger.LogInformation("Processing {Count} due subscription payments for {Date}.", dueSubscriptions.Length, today);
 
-            //client for api request to see if it has discount...
+                decimal baseSubscriptionPrice = PaymentConfig.MembershipFee;
+                var messages = new List<ServiceBusMessage>();
 
-            //save payments to cosmosdb
+                foreach (MemberSubscription ms in dueSubscriptions)
+                {
+                    PaymentMessage paymentMessage = new PaymentMessage();
 
-            //send to service bus
+                    if (ms.IBAN == null)
+                    {
+                        _logger.LogWarning("MemberSubscription with Id {Id} has no IBAN. Skipping payment processing.", ms.Id);
+                        continue;
+                    }
+                    else
+                    {
+                        //Simulate a 10% chance of payment failure due to cancelled direct debit in bank account
+                        var changeUserCancelledInBankAccount = new Random().Next(10, 100);
 
-            //generate random chance of user cancelled direct debt in his bank account/wrong iban etc
+                        if (changeUserCancelledInBankAccount <= 10)
+                        {
+                            _logger.LogWarning("Simulating payment failure for MemberSubscription with Id {Id} due to cancelled direct debit in bank account.", ms.MemberId);
 
-            // TODO: Execute your payment logic here and persist any updates.
-            // Example (if you track and update entities, remove AsNoTracking above):
-            // foreach (var sub in dueTracked)
-            // {
-            //     // charge sub ...
-            // }
-            // await db.SaveChangesAsync(ct);
+                            paymentMessage.MemberId = ms.MemberId;
+                            paymentMessage.NextPayment = ms.PaymentDay;
+                            paymentMessage.PaymentSuccessful = true;
+
+                            var msgbody = BinaryData.FromObjectAsJson(paymentMessage);
+
+                            var msg2 = new ServiceBusMessage(msgbody)
+                            {
+                                ContentType = "application/json",
+                                Subject = "SubscriptionPayment",
+                                MessageId = $"pay:{ms.MemberId}:{today:yyyyMMdd}",
+                                CorrelationId = ms.MemberId.ToString()
+                            };
+                            messages.Add(msg2);
+                            continue;
+
+                        }
+                    }
+
+                    var discount = await _memberDiscountClient.GetMemberDiscountAsync(ms.MemberId, ct);
+                    decimal gymFee = discount != null ? baseSubscriptionPrice - (baseSubscriptionPrice * discount.Discount) : baseSubscriptionPrice;
+
+                    PaymentHistory payment = new PaymentHistory
+                    {
+                        MemberId = ms.MemberId,
+                        IBAN = ms.IBAN,
+                        PaymentDate = today,
+                        Amount = gymFee
+                    };
+
+                    db.PaymentHistory.Add(payment);
+                    ms.PaymentDay = ms.PaymentDay.AddMonths(1);
+
+                    paymentMessage.MemberId = ms.MemberId;
+                    paymentMessage.NextPayment = ms.PaymentDay;
+                    paymentMessage.PaymentSuccessful = true;
+
+                    var body = BinaryData.FromObjectAsJson(paymentMessage);
+
+                    var msg = new ServiceBusMessage(body)
+                    {
+                        ContentType = "application/json",
+                        Subject = "SubscriptionPayment",
+                        MessageId = $"pay:{ms.MemberId}:{today:yyyyMMdd}",
+                        CorrelationId = ms.MemberId.ToString()
+                    };
+
+                    messages.Add(msg);
+                }
+
+                await db.SaveChangesAsync(ct);
+                await SendInBatchesAsync(_sender, messages, ct);
+
+                _logger.LogInformation("Published {Count} messages and saved payments.", messages.Count);
+            }
+        }
+
+        private async Task SendInBatchesAsync(ServiceBusSender sender, IEnumerable<ServiceBusMessage> messages, CancellationToken ct)
+        {
+            ServiceBusMessageBatch batch = await sender.CreateMessageBatchAsync(ct);
+
+            try
+            {
+                foreach (var msg in messages)
+                {
+                    if (!batch.TryAddMessage(msg))
+                    {
+                        await sender.SendMessagesAsync(batch, ct);
+                        batch.Dispose();
+
+                        batch = await sender.CreateMessageBatchAsync(ct);
+
+                        if (!batch.TryAddMessage(msg)) throw new InvalidOperationException("Single message too large for an empty batch.");
+                    }
+                }
+
+                if (batch.Count > 0) await sender.SendMessagesAsync(batch, ct);
+            }
+            finally
+            {
+                batch.Dispose();
+            }
+
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
