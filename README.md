@@ -9,7 +9,7 @@
 - **Members** is the integration hub: validates staff (Auth), checks discounts (Promo), updates access from **PaymentMessage** (Memberships).
 - Focus was **architecture & communication patterns**; intentionally **no frontend**, **no Azure deploy**, and **minimal ops**.
 
-> **Why no Azure deploy?** Deploying microservices well adds CI/CD, container orchestration, APIM, etc. That infra work wasn’t the learning goal here; this repo is to show **service boundaries + messaging**. Future repos will cover deployment and platform concerns.
+> **Why no Azure deploy?** I didnt bother to do it cause its a personal project and microservices...
 
 ## What this shows
 - Separate services with clear boundaries (**Auth**, **Members**, **Memberships**, **Promo**).
