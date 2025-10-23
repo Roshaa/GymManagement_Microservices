@@ -19,14 +19,34 @@
 ## Architecture
 ```mermaid
 flowchart LR
-  U[App User] -->|login| A[Auth API]
-  GM[Gym Member] -->|"GET: check access"| M[Members API]
+  %% Clients
+  U[App User]
+  GM[Gym Member]
 
-  M -->|"verify staff (when needed)"| A
-  M -->|"discount lookup"| P[Promo API]
-  M -->|"billing queries / history"| B[Memberships API]
+  %% Services
+  A[Auth API]
+  M[Members API]
+  P[Promo API]
+  B[Memberships API]
+  Q[(Azure Service Bus Queue - Basic)]
 
-  B -->|"publish PaymentMessage"| Q[(Azure Service Bus Queue - Basic)]
+  %% Auth flow
+  U -->|login → JWT| A
+
+  %% Authenticated calls (all services use Auth-issued JWT)
+  U -->|"Bearer JWT"| M
+  U -->|"Bearer JWT"| P
+  U -->|"Bearer JWT"| B
+
+  %% Member access check (no auth)
+  GM -->|"GET: check access (no auth)"| M
+
+  %% Service-to-service (authenticated)
+  M -->|"discount lookup (Bearer)"| P
+  M -->|"billing/history (Bearer)"| B
+
+  %% Messaging
+  B -->|"publish PaymentMessage"| Q
   Q -->|"consume"| M
 
 ```
