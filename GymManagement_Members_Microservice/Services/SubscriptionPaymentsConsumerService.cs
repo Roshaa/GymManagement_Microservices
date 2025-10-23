@@ -70,6 +70,12 @@ public sealed class SubscriptionPaymentsConsumerService : IHostedService
             if (paymentMessage.PaymentSuccessful)
             {
                 member.ActiveUntilDay = paymentMessage.NextPayment!.Value;
+                MemberDiscount? discount = await db.MemberDiscounts.SingleOrDefaultAsync(md => md.MemberId == member.Id, args.CancellationToken);
+                discount.RemainingMonths--;
+                if (discount.RemainingMonths <= 0)
+                {
+                    db.MemberDiscounts.Remove(discount);
+                }
                 _logger.LogInformation("Payment OK for MemberId={MemberId}. Next={Next}", paymentMessage.MemberId, paymentMessage.NextPayment);
             }
             else
