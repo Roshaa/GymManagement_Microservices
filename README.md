@@ -19,19 +19,16 @@
 ## Architecture
 ```mermaid
 flowchart LR
-  subgraph "Sync (HTTP)"
-    M[Members API]
-    A[Auth API]
-    P[Promo API]
-    B[Memberships API]
-    M -- "verify staff" --> A
-    M -- "discount lookup" --> P
-  end
+  U[App User] -->|login| A[Auth API]
+  GM[Gym Member] -->|"GET: check access"| M[Members API]
 
-  B -- "publish PaymentMessage" --> Q[(Azure Service Bus Queue)]
-  Q --> M
+  M -->|"verify staff (when needed)"| A
+  M -->|"discount lookup"| P[Promo API]
+  M -->|"billing queries / history"| B[Memberships API]
 
-  M -- "EF Core" --> DB[(SQL Server)]
+  B -->|"publish PaymentMessage"| Q[(Azure Service Bus Queue - Basic)]
+  Q -->|"consume"| M
+
 ```
 > Context: Using **Service Bus Basic** (queues only; no topics/sessions). Migrations run at startup in dev; in prod you’d handle them in CI/CD or a one-off job.
 
